@@ -67,26 +67,22 @@ function dm3_topicmaps() {
      * @param   topic   a CanvasTopic object
      */
     this.post_add_topic_to_canvas = function(topic) {
-        // error check
-        if (!topicmap) {
-            alert("ERROR at post_add_topic_to_canvas: no topicmap is selected")
-            return
-        }
-        //
-        topicmap.add_topic(topic.id, topic.type, topic.label, topic.x, topic.y)
+        topicmap.show_topic(topic.id, topic.type, topic.label, topic.x, topic.y)
     }
 
     /**
      * @param   relation   a CanvasAssoc object
      */
     this.post_add_relation_to_canvas = function(relation) {
-        // error check
-        if (!topicmap) {
-            alert("ERROR at post_add_relation_to_canvas: no topicmap is selected")
-            return
-        }
-        //
         topicmap.add_relation(relation.id, relation.doc1_id, relation.doc2_id)
+    }
+
+    this.post_remove_topic_from_canvas = function(topic) {
+        topicmap.hide_topic(topic.id)
+    }
+
+    this.post_remove_relation_from_canvas = function(relation) {
+        topicmap.remove_relation(relation.id)
     }
 
     this.post_move_topic_on_canvas = function(topic) {
@@ -170,9 +166,9 @@ function dm3_topicmaps() {
 
 
 
-    /*****************************/
-    /********** Classes **********/
-    /*****************************/
+    /************************************/
+    /********** Custom Classes **********/
+    /************************************/
 
 
 
@@ -181,26 +177,30 @@ function dm3_topicmaps() {
      */
     function Topicmap(topicmap_id) {
 
-        var topics = {}     // Topics of this topicmap (key: topic ID, value: Topic object)
-        var relations = {}  // Relations of this topicmap (key: relation ID, value: Relation object)
+        // Model
+        var topics = {}     // topics of this topicmap (key: topic ID, value: Topic object)
+        var relations = {}  // relations of this topicmap (key: relation ID, value: Relation object)
 
         load()
 
         this.display_on_canvas = function() {
             canvas.clear()
-            for (var topic_id in topics) {
-                var topic = topics[topic_id]
-                canvas.add_topic(topic.id, topic.type, topic.label, false, topic.x, topic.y)
+            for (var id in topics) {
+                var topic = topics[id]
+                if (topic.visible) {
+                    canvas.add_topic(topic.id, topic.type, topic.label, false, topic.x, topic.y)
+                }
             }
-            for (var rel_id in relations) {
-                var rel = relations[rel_id]
+            for (var id in relations) {
+                var rel = relations[id]
                 canvas.add_relation(rel.id, rel.doc1_id, rel.doc2_id)
             }
             canvas.refresh()
         }
 
-        this.add_topic = function(id, type, label, x, y) {
-            if (!topics[id]) {
+        this.show_topic = function(id, type, label, x, y) {
+            var topic = topics[id]
+            if (!topic) {
                 log("Adding topic " + id + " (\"" + label + "\") to topicmap " + topicmap_id)
                 // update DB
                 var ref_fields = {
@@ -209,9 +209,12 @@ function dm3_topicmaps() {
                 }
                 var ref = create_relation("Topic Ref", topicmap_id, id, ref_fields)
                 // update model
-                topics[id] = new Topic(id, type, label, x, y, ref._id)
+                topics[id] = new Topic(id, type, label, x, y, true, ref._id)
+            } else if (!topic.visible) {
+                log("Showing topic " + id + " (\"" + topic.label + "\") on topicmap " + topicmap_id)
+                topic.set_visible(true)
             } else {
-                log("Topic " + id + " (\"" + label + "\") already in topicmap " + topicmap_id)
+                log("Topic " + id + " (\"" + label + "\") already visible in topicmap " + topicmap_id)
             }
         }
 
@@ -221,7 +224,7 @@ function dm3_topicmaps() {
                 // update DB
                 var ref = create_relation("Relation Ref", topicmap_id, id)
                 // update model
-                relations[id] = new Relation(id, doc1_id, doc2_id)
+                relations[id] = new Relation(id, doc1_id, doc2_id, ref._id)
             } else {
                 log("Relation " + id + " already in topicmap " + topicmap_id)
             }
@@ -236,11 +239,26 @@ function dm3_topicmaps() {
             // update DB
             var ref = db.open(topic.ref_id)
             ref.topic_pos = {x: x, y: y}
-            log("Updating topic " + id + " (x=" + x + " y=" + y + ") => " + JSON.stringify(ref))
+            log("Moving topic " + id + " (x=" + x + " y=" + y + ")")
             save_document(ref)
             // update model
             topic.x = x
             topic.y = y
+        }
+
+        this.hide_topic = function(id) {
+            var topic = topics[id]
+            log("Hiding topic " + id + " (\"" + topic.label + "\") on topicmap " + topicmap_id)
+            topic.set_visible(false)
+        }
+
+        this.remove_relation = function(id) {
+            // update DB
+            log("Removing relation " + id + " from topicmap " + topicmap_id)
+            var ref = db.open(relations[id].ref_id)
+            db.deleteDoc(ref)
+            // update model
+            delete relations[id]
         }
 
         function load() {
@@ -257,12 +275,14 @@ function dm3_topicmaps() {
                 for (var i = 0, row; row = rows[i]; i++) {
                     var topic_id = row.value.topic_id
                     var pos = row.value.pos
+                    var visible = row.value.visible
                     topic_ids.push(topic_id)
-                    topics[topic_id] = new Topic(topic_id, undefined, undefined, pos.x, pos.y, row.id)
+                    topics[topic_id] = new Topic(topic_id, undefined, undefined, pos.x, pos.y, visible, row.id)
                 }
                 // Round 2: init topic type and topic label
                 var tpcs = get_topics(topic_ids)
                 for (var i = 0, t; t = tpcs[i]; i++) {
+                    log(".......... " + t.id + " (\"" + t.label + "\")")
                     var topic = topics[t.id]
                     topic.type = t.type
                     topic.label = t.label
@@ -277,11 +297,12 @@ function dm3_topicmaps() {
                 for (var i = 0, row; row = rows[i]; i++) {
                     var rel_id = row.value.relation_id
                     rel_ids.push(rel_id)
-                    relations[rel_id] = new Relation(rel_id)
+                    relations[rel_id] = new Relation(rel_id, undefined, undefined, row.id)
                 }
                 // Round 2: init doc IDs
                 var rltns = get_relations(rel_ids)
                 for (var i = 0, r; r = rltns[i]; i++) {
+                    log(".......... " + r.id)
                     var rel = relations[r.id]
                     rel.doc1_id = r.doc1_id
                     rel.doc2_id = r.doc2_id
@@ -289,19 +310,30 @@ function dm3_topicmaps() {
             }
         }
 
-        function Topic(id, type, label, x, y, ref_id) {
+        function Topic(id, type, label, x, y, visible, ref_id) {
             this.id = id
             this.type = type
             this.label = label
             this.x = x
             this.y = y
+            this.visible = visible
             this.ref_id = ref_id
+
+            this.set_visible = function(visible) {
+                // update DB
+                var ref = db.open(this.ref_id)
+                ref.topic_visible = visible
+                save_document(ref)
+                // update model
+                this.visible = visible
+            }
         }
 
-        function Relation(id, doc1_id, doc2_id) {
+        function Relation(id, doc1_id, doc2_id, ref_id) {
             this.id = id
             this.doc1_id = doc1_id
             this.doc2_id = doc2_id
+            this.ref_id = ref_id
         }
     }
 }
