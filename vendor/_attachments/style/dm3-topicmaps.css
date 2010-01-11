@@ -1,10 +1,12 @@
-#topicmap_form {
+#topicmap-form {
     float: left;
     margin-right: 3em;
 }
 
-#topicmap_label {
+#topicmap-label {
+    color: #555555;
     font-size: 81.25%;
+    font-weight: normal;
     margin-left: 0em;
-    margin-right: 0.5em;
+    margin-right: 0.4em;
 }

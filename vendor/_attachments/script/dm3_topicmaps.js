@@ -39,11 +39,11 @@ function dm3_topicmaps() {
         }
 
         function create_topicmap_menu() {
-            var topicmap_label = $("<span>").attr("id", "topicmap_label").text("Topicmap")
-            var topicmap_menu = $("<div>").attr("id", "topicmap_menu")
-            var topicmap_form = $("<div>").attr("id", "topicmap_form").append(topicmap_label).append(topicmap_menu)
-            $("#upper-toolbar").prepend(topicmap_form)
-            ui.menu("topicmap_menu", topicmap_selected)
+            var topicmap_label = $("<span>").attr("id", "topicmap-label").text("Topicmap")
+            var topicmap_menu = $("<div>").attr("id", "topicmap-menu")
+            var topicmap_form = $("<div>").attr("id", "topicmap-form").append(topicmap_label).append(topicmap_menu)
+            $("#workspace-form").after(topicmap_form)   // TODO: make topicmaps plugin independant from workspace plugin
+            ui.menu("topicmap-menu", topicmap_selected)
             update_topicmap_menu(topicmaps)
         }
 
@@ -58,7 +58,7 @@ function dm3_topicmaps() {
         }
 
         function load_topicmap() {
-            var topicmap_id = ui.menu_item("topicmap_menu").value
+            var topicmap_id = ui.menu_item("topicmap-menu").value
             select_topicmap(topicmap_id)
         }
     }
@@ -67,7 +67,11 @@ function dm3_topicmaps() {
      * @param   topic   a CanvasTopic object
      */
     this.post_add_topic_to_canvas = function(topic) {
-        topicmap.show_topic(topic.id, topic.type, topic.label, topic.x, topic.y)
+        var pos = topicmap.show_topic(topic.id, topic.type, topic.label, topic.x, topic.y)
+        // restore topic position if topic was already contained in this topicmap but hidden
+        if (pos) {
+            topic.move_to(pos.x, pos.y)
+        }
     }
 
     /**
@@ -77,16 +81,39 @@ function dm3_topicmaps() {
         topicmap.add_relation(relation.id, relation.doc1_id, relation.doc2_id)
     }
 
-    this.post_remove_topic_from_canvas = function(topic) {
-        topicmap.hide_topic(topic.id)
+    this.post_hide_topic_from_canvas = function(topic_id) {
+        topicmap.hide_topic(topic_id)
     }
 
+    /**
+     * @param   relation   a CanvasAssoc object
+     */
     this.post_remove_relation_from_canvas = function(relation) {
         topicmap.remove_relation(relation.id)
     }
 
+    /**
+     * @param   topic   a CanvasTopic object
+     */
     this.post_move_topic_on_canvas = function(topic) {
         topicmap.move_topic(topic.id, topic.x, topic.y)
+    }
+
+    this.post_set_topic_label = function(topic_id, label) {
+        log("Setting label of topic " + topic_id + " to \"" + label + "\"")
+        for (var id in topicmaps) {
+            var topic = topicmaps[id].get_topic(topic_id)
+            if (topic) {
+                topic.label = label
+            }
+        }
+    }
+
+    this.post_delete_topic = function(topic_id) {
+        log("Deleting topic " + topic_id + " from all topicmaps")
+        for (var id in topicmaps) {
+            topicmaps[id].delete_topic(topic_id)
+        }
     }
 
 
@@ -142,17 +169,17 @@ function dm3_topicmaps() {
             topicmaps = get_all_topicmaps()
         }
         // add menu items
-        ui.empty_menu("topicmap_menu")
+        ui.empty_menu("topicmap-menu")
         var icon_src = get_icon_src("Topicmap")
         for (var i = 0, row; row = topicmaps.rows[i]; i++) {
-            ui.add_menu_item("topicmap_menu", {label: row.value, value: row.id, icon: icon_src})
+            ui.add_menu_item("topicmap-menu", {label: row.value, value: row.id, icon: icon_src})
         }
-        ui.add_menu_separator("topicmap_menu")
-        ui.add_menu_item("topicmap_menu", {label: "New Topicmap...", value: "_new", is_trigger: true})
+        ui.add_menu_separator("topicmap-menu")
+        ui.add_menu_item("topicmap-menu", {label: "New Topicmap...", value: "_new", is_trigger: true})
     }
 
     function select_menu_item(topicmap_id) {
-        ui.select_menu_item("topicmap_menu", topicmap_id)
+        ui.select_menu_item("topicmap-menu", topicmap_id)
     }
 
     function get_topicmap(id) {
@@ -213,6 +240,7 @@ function dm3_topicmaps() {
             } else if (!topic.visible) {
                 log("Showing topic " + id + " (\"" + topic.label + "\") on topicmap " + topicmap_id)
                 topic.set_visible(true)
+                return {x: topic.x, y: topic.y}
             } else {
                 log("Topic " + id + " (\"" + label + "\") already visible in topicmap " + topicmap_id)
             }
@@ -232,10 +260,6 @@ function dm3_topicmaps() {
 
         this.move_topic = function(id, x, y) {
             var topic = topics[id]
-            //
-            if (!topic) {
-                alert("ERROR at move_topic: topic " + id + " not found in topicmap " + topicmap_id)
-            }
             // update DB
             var ref = db.open(topic.ref_id)
             ref.topic_pos = {x: x, y: y}
@@ -252,13 +276,26 @@ function dm3_topicmaps() {
             topic.set_visible(false)
         }
 
+        this.delete_topic = function(id) {
+            delete topics[id]
+        }
+
         this.remove_relation = function(id) {
             // update DB
             log("Removing relation " + id + " from topicmap " + topicmap_id)
             var ref = db.open(relations[id].ref_id)
-            db.deleteDoc(ref)
+            if (ref) {
+                db.deleteDoc(ref)
+            } else {
+                log("ERROR at Topicmap.remove_relation: Reference for relation " + id +
+                    " in topicmap " + topicmap_id + " not found in DB.")
+            }
             // update model
             delete relations[id]
+        }
+
+        this.get_topic = function(id) {
+            return topics[id]
         }
 
         function load() {
@@ -282,8 +319,8 @@ function dm3_topicmaps() {
                 // Round 2: init topic type and topic label
                 var tpcs = get_topics(topic_ids)
                 for (var i = 0, t; t = tpcs[i]; i++) {
-                    log(".......... " + t.id + " (\"" + t.label + "\")")
                     var topic = topics[t.id]
+                    log(".......... " + t.id + " (\"" + t.label + "\"), visible=" + topic.visible)
                     topic.type = t.type
                     topic.label = t.label
                 }
@@ -322,8 +359,13 @@ function dm3_topicmaps() {
             this.set_visible = function(visible) {
                 // update DB
                 var ref = db.open(this.ref_id)
-                ref.topic_visible = visible
-                save_document(ref)
+                if (ref) {
+                    ref.topic_visible = visible
+                    save_document(ref)
+                } else {
+                    log("ERROR at Topic.set_visible: Reference for topic " + this.id + " (\"" + this.label + "\") " +
+                        "in topicmap " + topicmap_id + " not found in DB (visible=" + visible + ").")
+                }
                 // update model
                 this.visible = visible
             }
