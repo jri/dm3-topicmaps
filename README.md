@@ -39,7 +39,7 @@ Installation
 
 7.  Check if install was successful: visit DeepaMehta 3 in your webbrowser (resp. press reload):  
     <http://localhost:5984/deepamehta3-db/_design/deepamehta3/index.html>  
-    If you see the *Topicmaps* menu in the upper left corner everything is OK.
+    If you see the *Topicmap* menu in the upper left corner everything is OK.
 
 
 Usage Hints
@@ -47,13 +47,13 @@ Usage Hints
 
 * Create a new topicmap by choosing *New Topicmap...* from the Topicmap menu.
 
-* Rename a topicmap by revealing it -- topicmaps themselfs are topics and can be revealed and edited like any other topic.
+* Rename a topicmap by revealing it -- topicmaps are topics themself and can be revealed and edited like any other topic.
 
 * Delete a topicmap by revealing it, and then delete it (just like any other topic).
 
 * Search for a topicmap by using the usual *By Time*, *By Type*, oder *By Text* (search by topicmap name) searches.
 
-* Behind the scenes every topic (and relation) contained in a topicmap is explicitely related to that topicmap (by means of regular relations). That enables you both: 1) For any selected topic you can see (in the detail panel, right hand side) in which topicmaps it is involved, and 2) By revealing the topicmap itself you get a listing of all the contained topics (again in the detail panel). This provides you an overview for large topicmaps.
+* Behind the scenes topicmaps are topics themself and every topic (and relation) contained in a topicmap is explicitely related to that topicmap (by means of regular relations). That enables you both: 1) For any selected topic you can see (in the detail panel, right hand side) in which topicmaps it is involved, and 2) By revealing the topicmap (topic) itself you get a listing of all the contained topics (again in the detail panel). This provides you an overview for large topicmaps.
 
 
 Issues
@@ -70,4 +70,4 @@ Issues
 
 ------------
 Jörg Richter  
-Jan 14, 2009
+Jan 14, 2010
