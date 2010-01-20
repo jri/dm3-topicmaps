@@ -1,6 +1,6 @@
 function dm3_topicmaps() {
 
-    types["Topicmap"] = {
+    add_topic_type("Topicmap", {
         fields: [
             {id: "Title",       model: {type: "text"}, view: {editor: "single line"}, content: ""},
             {id: "Description", model: {type: "html"}, view: {editor: "multi line"},  content: ""}
@@ -8,7 +8,7 @@ function dm3_topicmaps() {
         view: {
         },
         implementation: "PlainDocument"
-    }
+    })
 
     css_stylesheet("vendor/dm3-topicmaps/style/dm3-topicmaps.css")
 
