@@ -109,10 +109,12 @@ function dm3_topicmaps() {
         }
     }
 
-    this.post_delete_topic = function(topic_id) {
-        log("Deleting topic " + topic_id + " from all topicmaps")
-        for (var id in topicmaps) {
-            topicmaps[id].delete_topic(topic_id)
+    this.post_delete = function(doc) {
+        if (doc.type == "Topic") {
+            log("Deleting topic " + doc._id + " from all topicmaps")
+            for (var id in topicmaps) {
+                topicmaps[id].delete_topic(doc._id)
+            }
         }
     }
 
