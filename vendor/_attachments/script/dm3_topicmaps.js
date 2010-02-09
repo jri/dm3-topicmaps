@@ -6,6 +6,7 @@ function dm3_topicmaps() {
             {id: "Description", model: {type: "html"}, view: {editor: "multi line"},  content: ""}
         ],
         view: {
+            icon_src: "vendor/dm3-topicmaps/images/network.png"
         },
         implementation: "PlainDocument"
     })
@@ -32,7 +33,7 @@ function dm3_topicmaps() {
         load_topicmap()
 
         function create_default_topicmap() {
-            if (topicmaps.rows.length == 0) {
+            if (!topicmaps.length) {
                 create_topicmap("untitled")
                 topicmaps = get_all_topicmaps()
             }
@@ -173,8 +174,8 @@ function dm3_topicmaps() {
         // add menu items
         ui.empty_menu("topicmap-menu")
         var icon_src = get_icon_src("Topicmap")
-        for (var i = 0, row; row = topicmaps.rows[i]; i++) {
-            ui.add_menu_item("topicmap-menu", {label: row.value, value: row.id, icon: icon_src})
+        for (var i = 0, topicmap; topicmap = topicmaps[i]; i++) {
+            ui.add_menu_item("topicmap-menu", {label: topicmap.label, value: topicmap.id, icon: icon_src})
         }
         ui.add_menu_separator("topicmap-menu")
         ui.add_menu_item("topicmap-menu", {label: "New Topicmap...", value: "_new", is_trigger: true})
