@@ -232,7 +232,7 @@ function dm3_topicmaps() {
                 for (var id in topics) {
                     var topic = topics[id]
                     if (topic.visible) {
-                        canvas.add_topic(topic.id, topic.type, topic.label, false, topic.x, topic.y)
+                        canvas.add_topic(topic.id, topic.type, topic.label, false, false, topic.x, topic.y)
                     }
                 }
                 for (var id in relations) {
