@@ -216,18 +216,31 @@ function dm3_topicmaps() {
         load()
 
         this.display_on_canvas = function() {
-            canvas.clear()
+
+            // track loading of topic type images
+            var image_tracker = create_image_tracker(display_on_canvas)
             for (var id in topics) {
                 var topic = topics[id]
                 if (topic.visible) {
-                    canvas.add_topic(topic.id, topic.type, topic.label, false, topic.x, topic.y)
+                    image_tracker.add_type(topic.type)
                 }
             }
-            for (var id in relations) {
-                var rel = relations[id]
-                canvas.add_relation(rel.id, rel.doc1_id, rel.doc2_id)
+            image_tracker.check()
+
+            function display_on_canvas() {
+                canvas.clear()
+                for (var id in topics) {
+                    var topic = topics[id]
+                    if (topic.visible) {
+                        canvas.add_topic(topic.id, topic.type, topic.label, false, topic.x, topic.y)
+                    }
+                }
+                for (var id in relations) {
+                    var rel = relations[id]
+                    canvas.add_relation(rel.id, rel.doc1_id, rel.doc2_id)
+                }
+                canvas.refresh()
             }
-            canvas.refresh()
         }
 
         this.show_topic = function(id, type, label, x, y) {
