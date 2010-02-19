@@ -61,8 +61,7 @@ function dm3_topicmaps() {
         }
 
         function load_topicmap() {
-            var topicmap_id = ui.menu_item("topicmap-menu").value
-            select_topicmap(topicmap_id)
+            select_topicmap(get_topicmap_id())
         }
     }
 
@@ -114,9 +113,29 @@ function dm3_topicmaps() {
 
     this.post_delete = function(doc) {
         if (doc.type == "Topic") {
+            // 1) Possibly remove topic from all topicmap models 
             if (LOG_TOPICMAPS) log("Deleting topic " + doc._id + " from all topicmaps")
             for (var id in topicmaps) {
                 topicmaps[id].delete_topic(doc._id)
+            }
+            // 2) Update the topicmap menu if the deleted topic was a topicmap
+            if (doc.topic_type == "Topicmap") {
+                // remove topicmap model
+                delete topicmaps[doc._id]
+                //
+                var topicmap_id = get_topicmap_id()
+                if (topicmap_id == doc._id) {
+                    if (LOG_TOPICMAPS) log("... updating the topicmap menu and selecting the first item (the deleted topic was the CURRENT topicmap)")
+                    if (!size(topicmaps)) {
+                        create_topicmap("untitled")
+                    }
+                    update_topicmap_menu()
+                    select_topicmap(get_topicmap_id())
+                } else {
+                    if (LOG_TOPICMAPS) log("... updating the topicmap menu and restoring the selection (the deleted topic was ANOTHER topicmap)")
+                    update_topicmap_menu()
+                    select_menu_item(topicmap_id)  // restore selection
+                }
             }
         }
     }
@@ -133,6 +152,13 @@ function dm3_topicmaps() {
         return get_topics_by_type("Topicmap")
     }
 
+    /**
+     * Returns the ID of the currently selected topicmap.
+     */
+    function get_topicmap_id() {
+        return ui.menu_item("topicmap-menu").value
+    }
+
     function create_topicmap(name) {
         if (LOG_TOPICMAPS) log("Creating topicmap \"" + name + "\"")
         var topicmap = create_topic("Topicmap", {"Title": name})
@@ -143,7 +169,7 @@ function dm3_topicmaps() {
     function topicmap_selected(menu_item) {
         var topicmap_id = menu_item.value
         if (topicmap_id == "_new") {
-            new_topicmap()
+            open_topicmap_dialog()
         } else {
             select_topicmap(topicmap_id)
         }
@@ -155,7 +181,7 @@ function dm3_topicmaps() {
         topicmap.display_on_canvas()
     }
 
-    function new_topicmap() {
+    function open_topicmap_dialog() {
         $("#topicmap_dialog").dialog("open")
     }
 
@@ -205,7 +231,11 @@ function dm3_topicmaps() {
 
 
     /**
-     * A persistent topicmap.
+     * An in-memory representation (model) of a persistent topicmap. There are methods for:
+     *  - loading a topicmap from DB and building the in-memory representation.
+     *  - displaying the in-memory representation on the canvas.
+     *  - manipulating the in-memory representation by e.g. adding/removing topics and relations,
+     *    while synchronizing the DB accordingly.
      */
     function Topicmap(topicmap_id) {
 
@@ -295,20 +325,22 @@ function dm3_topicmaps() {
         }
 
         this.delete_topic = function(id) {
+            // Note: all topic references are deleted already
             delete topics[id]
         }
 
         this.remove_relation = function(id) {
-            // update DB
+            // 1) update DB
             if (LOG_TOPICMAPS) log("Removing relation " + id + " from topicmap " + topicmap_id)
             var ref = db.open(relations[id].ref_id)
             if (ref) {
+                // delete relation reference
                 db.deleteDoc(ref)
             } else {
-                if (LOG_TOPICMAPS) log("ERROR at Topicmap.remove_relation: Reference for relation " + id +
+                if (LOG_TOPICMAPS) log("### ERROR at Topicmap.remove_relation: Reference for relation " + id +
                     " in topicmap " + topicmap_id + " not found in DB.")
             }
-            // update model
+            // 2) update model
             delete relations[id]
         }
 
@@ -365,6 +397,8 @@ function dm3_topicmaps() {
             }
         }
 
+        /*** Model Classes ***/
+
         function Topic(id, type, label, x, y, visible, ref_id) {
             this.id = id
             this.type = type
@@ -381,7 +415,7 @@ function dm3_topicmaps() {
                     ref.topic_visible = visible
                     save_document(ref)
                 } else {
-                    if (LOG_TOPICMAPS) log("ERROR at Topic.set_visible: Reference for topic " + this.id + " (\"" +
+                    if (LOG_TOPICMAPS) log("### ERROR at Topicmap.Topic.set_visible: Reference for topic " + this.id + " (\"" +
                         this.label + "\") in topicmap " + topicmap_id + " not found in DB (visible=" + visible + ").")
                 }
                 // update model
