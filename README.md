@@ -22,7 +22,7 @@ Installation
 1.  Go to your DeepaMehta 3 installation directory:
         cd deepamehta3
 
-2.  Download the DM3 Topicmaps plugin:
+2.  Download DM3 Topicmaps plugin:
         couchapp vendor install git://github.com/jri/dm3-topicmaps.git
 
 3.  Activate the plugin by adding one line to DeepaMehta's `_attachments/javascript/plugins.js`:
@@ -37,7 +37,7 @@ Installation
 6.  Upload changes to CouchDB:
         couchapp push http://localhost:5984/deepamehta3-db
 
-7.  Check if install was successful: visit DeepaMehta 3 in your webbrowser (resp. press reload):  
+7.  Check if installation was successful: visit DeepaMehta 3 in your webbrowser (resp. press reload):  
     <http://localhost:5984/deepamehta3-db/_design/deepamehta3/index.html>  
     If you see the *Topicmap* menu in the upper left corner everything is OK.
 
@@ -61,13 +61,34 @@ Issues
 
 * Renaming of a topicmap is not immediately reflected in the Topicmap menu.
 
-* Deletion of a topicmap is not immediately reflected in the Topicmap menu, that is the deleted topicmap still appears in the menu. IMPORTANT: Once you delete a topicmap you should switch to another topicmap or create a new one.
-
 * For the moment the Topicmap menu lists _all_ topicmaps regardless of ownership or selected workspace. Future versions of the DM3 Topicmaps plugin will list only the topicmaps belonging to the selected workspace (provided the DM3 Workspaces plugin is installed).
 
-* There is no custom icon representing the *Topicmap* type yet.
+
+Updating
+--------
+
+1.  Go to your DeepaMehta 3 installation directory:
+        cd deepamehta3
+
+2.  Update DeepaMehta 3 Topicmaps Plugin:
+        couchapp vendor update dm3-topicmaps
+
+3.  Copy additional stuff:
+        cp -r vendor/dm3-topicmaps/views/dm3-topicmaps views
+
+4.  Upload changes to CouchDB:
+        couchapp push http://localhost:5984/deepamehta3-db
+
+
+Version History
+---------------
+
+**v0.3** -- Mar 6, 2010
+
+* Basic functionality
+* Compatible with DeepaMehta 3 v0.3
 
 
 ------------
 Jörg Richter  
-Jan 14, 2010
+Mar 6, 2010
